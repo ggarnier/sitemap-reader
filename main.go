@@ -1,49 +1,23 @@
 package main
 
 import (
-	"bytes"
 	"fmt"
 	"io/ioutil"
-	"log"
-	"os/exec"
-	"strconv"
-	"strings"
 )
-
-func count(filename string) int {
-	cmd := exec.Command("./xq.sh", filename)
-	var out bytes.Buffer
-	cmd.Stdout = &out
-	err := cmd.Run()
-	if err != nil {
-		log.Fatal(err)
-	}
-	output := strings.TrimSuffix(out.String(), "\n")
-	value, err := strconv.Atoi(output)
-	if err != nil {
-		fmt.Printf("err: %e\n", err)
-	}
-	return value
-}
 
 func processDir(files chan string) {
 	path := "./lawsuit/"
 	items, _ := ioutil.ReadDir(path)
-	total := 0
 	for _, item := range items {
 		if !item.IsDir() {
 			files <- path + item.Name()
-			total += 1
-			if total >= 100000 {
-				return
-			}
 		}
 	}
 }
 
-func readXml(files chan string, results chan int) {
+func readXmlFiles(files chan string, results chan int) {
 	for filename := range files {
-		result := count(filename)
+		result := parseXml(filename)
 		results <- result
 	}
 }
@@ -68,7 +42,7 @@ func main() {
 	processDir(files)
 	numFiles := len(files)
 	for i := 0; i < parallel; i++ {
-		go readXml(files, results)
+		go readXmlFiles(files, results)
 	}
 	sum(results, numFiles)
 }
